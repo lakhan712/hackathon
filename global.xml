@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="a1766e27-6c89-46a3-bb89-f55791365241" >
+		<db:my-sql-connection host="${db.host}" port="${db.port}" user="${db.user}" database="${db.database}" password="${db.pass}"/>
+	</db:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="2285970b-cd90-4425-a493-3d26d79a0831" file="config.yaml" />
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="5b699118-b43e-4572-9c33-7e20bf0681fc" >
+		<salesforce:basic-connection username="${sl.user}" password="${sl.pass}" securityToken="${sl.token}" />
+	</salesforce:sfdc-config>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="e8801432-6e51-49cb-996c-4e5c7299a4b7" file="config.yaml" key="#[villain]" >
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+	<email:smtp-config name="Email_SMTP" doc:name="Email SMTP" doc:id="8df198b2-4823-4a15-a587-b0e1d215be26" >
+		<email:smtp-connection host="smtp.pepipost.com" user="mlakhan1638" password="mlakhan1638_7632e23e373835b36a47683e00dac2ab" />
+	</email:smtp-config>
+	<configuration doc:name="Configuration" doc:id="7c7030f1-f725-4072-b465-19bb3fcc3624" defaultErrorHandler-ref="globalError_Handler" />
+	<error-handler name="globalError_Handler" doc:id="fbb9d5c5-0614-47ef-b1df-fc5f2b22076e" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="f342e64f-095e-43d2-a53f-67dfbddb4607" type="ANY">
+			<email:send doc:name="Send" doc:id="64d0d527-8520-4bfe-a83e-68303025130a" config-ref="Email_SMTP" fromAddress="mlakhan1638@pepisandbox.com" subject="Just for testing Hackathon app">
+				<email:to-addresses >
+					<email:to-address value="mlakhan1638@gmail.com" />
+				</email:to-addresses>
+				<email:body >
+					<email:content ><![CDATA[Hello this is just a test mail which tells that your app having error.]]></email:content>
+				</email:body>
+			</email:send>
+			<logger level="INFO" doc:name="Logger" doc:id="be9a78ce-b76f-4997-8e7f-f232846cb6a1" message="error mail is sent to you"/>
+		</on-error-propagate>
+	</error-handler>
+</mule>
