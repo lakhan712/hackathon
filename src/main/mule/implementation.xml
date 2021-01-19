@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<validation:config name="Validation_Config" doc:name="Validation Config" doc:id="dd603353-6392-4b77-8652-6eec85595ad4" i18n="#[isEmpty(attributes.uriParams.id)]" />
+	<flow name="getEmp" doc:id="9af6c2a3-573d-46f5-ae82-3929eed48c1a" >
+		<validation:is-not-blank-string doc:name="Is not blank string" doc:id="108cb3e2-1550-4f6e-a3db-8eacc60cb09f" value="#[attributes.uriParams.id]" message="uri param is not blank"/>
+		<db:select doc:name="Select" doc:id="31ef3782-ca84-46ea-866a-23477edf607a" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from employees where id= :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	id: attributes.uriParams.id
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="722946fe-c81f-4d98-96c6-d32e7a69a880">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	id: payload.id,
+	name: payload.name,
+	email: payload.email,
+	age: payload.age,
+	city: payload.city,
+	project: payload.project,
+	managerID: payload.manager
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="ec4dc003-4191-478b-8f5e-3430f6038143" message="get employees"/>
+	</flow>
+	<flow name="addEmp" doc:id="7d5f3830-e9c0-478c-8e37-6cf4b7569cc7" >
+		<validation:is-not-blank-string doc:name="is name" doc:id="9b7f9a71-f174-4e70-80f9-750a7002c876" value="#[payload.name]" message="name is empty" />
+		<validation:is-not-blank-string doc:name="Is not blank string" doc:id="4b6ec12e-eb2c-4020-b3d6-0af3320a0282" value="#[payload.email]" message="email is empty"/>
+		<validation:is-not-blank-string doc:name="Is not blank string" doc:id="3bcac6c1-dab0-4330-88f5-827f2a37f5f1" value="#[payload.age]" message="age is empty" />
+		<validation:is-not-blank-string doc:name="Is not blank string" doc:id="1d9eee8c-730a-44ce-940f-5dc1e4ee982a" value="#[payload.city]" message="city is empty"/>
+		<validation:is-not-blank-string doc:name="Is not blank string" doc:id="a6899e03-66bd-4fce-844b-fa2aac2f4734" value="#[payload.project]" message="project is empty" />
+		<validation:is-not-blank-string doc:name="Is not blank string" doc:id="9e38365c-c729-476b-8c81-df40e54cd0b0" value="#[payload.manager]" message="manager is empty"/>
+		<db:insert doc:name="Insert" doc:id="9d669d5d-acec-46cf-926f-fed3e8eff4c3" config-ref="Database_Config">
+			<db:sql ><![CDATA[insert into employees(name, email, age, city, project, manager) values(:name, :email, :age, :city, :project, :manager)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	name: payload.name,
+	email: payload.email,
+	age: payload.age,
+	city: payload.city,
+	project: payload.project,
+	manager: payload.manager
+}]]]></db:input-parameters>
+		</db:insert>
+		<db:select doc:name="Select" doc:id="bb325001-3106-480d-8b04-d0993b638476" config-ref="Database_Config">
+			<db:sql><![CDATA[select * from employees where id= :id]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	id: payload.generatedKeys
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="fb4c2698-462e-43ee-afa4-7c25fa6431b7">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	id__c: payload.id[0] as Number,
+	name__c: payload.name[0] as String,
+	email__c: payload.email[0] as String,
+	age__c: payload.age[0] as Number,
+	city__c: payload.city[0] as String,
+	project__c: payload.project[0] as String,
+	manager__c: payload.manager[0] as Number
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:create doc:name="Create" doc:id="4aa01118-989e-46c9-a51b-65242206231c" config-ref="Salesforce_Config" type="Villain__c">
+			<salesforce:records><![CDATA[#[{
+	id__c: payload.id,
+	name__c: payload.name,
+	email__c: payload.email,
+	age__c: payload.age,
+	city__c: payload.city,
+	project__c: payload.project,
+	manager__c: payload.manager
+}]]]></salesforce:records>
+		</salesforce:create>
+		<logger level="INFO" doc:name="Logger" doc:id="ac4b8c0e-7eb9-460b-8789-a3dc3c70daec" message="Data is added successfully"/>
+	</flow>
+	<flow name="updateEmp" doc:id="5b49aac5-8b1d-4da2-8e44-59c97f9831e5" >
+		<db:update doc:name="Update" doc:id="b22941b7-67c0-4775-b976-bae9b0689c38" config-ref="Database_Config">
+			<db:sql ><![CDATA[update employees set name= :name, email= :email, age= :age, city= :city, project= :project, manager= :manager where id= :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	id: attributes.uriParams.id,
+	name: payload.name,
+	email: payload.email,
+	age: payload.age,
+	city: payload.city,
+	project: payload.project,
+	manager: payload.manager
+}]]]></db:input-parameters>
+		</db:update>
+		<db:select doc:name="Select" doc:id="fa14994d-0b56-40a4-bc88-b40c16cf93bc" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from employees where id= :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	id: payload.generatedKeys
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="e777d121-b343-4410-8c0f-7bb052c6917b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	id__c: payload.id[0] as Number,
+	name__c: payload.name[0] as String,
+	email__c: payload.email[0] as String,
+	age__c: payload.age[0] as Number,
+	city__c: payload.city[0] as String,
+	project__c: payload.project[0] as String,
+	manager__c: payload.manager[0] as Number
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:update doc:name="Update" doc:id="1f55bf83-c1ec-4b8f-a5ed-ea5fd913fb17" config-ref="Salesforce_Config" type="Villain__c">
+			<salesforce:records ><![CDATA[#[{
+	id__c: payload.id,
+	name__c: payload.name,
+	email__c: payload.email,
+	age__c: payload.age,
+	city__c: payload.city,
+	project__c: payload.project,
+	manager__c: payload.manager
+}]]]></salesforce:records>
+		</salesforce:update>
+		<logger level="INFO" doc:name="Logger" doc:id="bacf605d-41eb-45d6-93cc-a74bd1e9ca51" message="update employees"/>
+	</flow>
+	<flow name="deleteEmp" doc:id="f66a3a3c-557d-4a80-9720-f1b2be8c2d91" >
+		<db:delete doc:name="Delete" doc:id="16fd8242-28d9-4aaa-bad1-23576ffee24e" config-ref="Database_Config">
+			<db:sql ><![CDATA[delete from employees where id = :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	id:  attributes.uriParams.id}]]]></db:input-parameters>
+		</db:delete>
+		<salesforce:delete doc:name="Delete" doc:id="864d56b1-650a-4cdf-a5bb-fc4c87613b91" config-ref="Salesforce_Config"/>
+		<logger level="INFO" doc:name="Logger" doc:id="aaa14166-90f9-465b-8159-8a93312ce780" message="employee is deleted"/>
+	</flow>
+</mule>
